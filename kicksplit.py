@@ -1,4 +1,5 @@
 import difflib
+import hashlib
 import json
 import os.path
 import re
@@ -89,6 +90,7 @@ if os.path.isfile(jsonpath):
             str = ''.join(a['lines'])
             fname = state['chunks'][i]['path']
             print("Updating %s" % fname)
+            state['chunks'][i]['sha1'] = hashlib.sha1(str).hexdigest()[0:7]
             with open(fname, 'w') as f:
                 f.write(str)
             delta += len(str)
@@ -107,8 +109,9 @@ else:
         global twpath
         global linecount
         if len(chunk) > 0:
-            path = '%s.%05d' % (twpath, pc)
-            state['chunks'].append({'lines': linecount, 'path': path})
+            path = '%s.%05d.htf' % (twpath, pc)
+            state['chunks'].append({'lines': linecount, 'path': path,
+                'sha1': hashlib.sha1(chunk).hexdigest()[0:7]})
             with open(path, 'w') as f:
                 f.write(chunk)
 

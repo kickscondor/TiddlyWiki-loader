@@ -38,9 +38,10 @@
       xhr.send()
     }
     get("wiki.html.json", function (txt) {
-      let wiki = JSON.parse(txt), loaded = 0, dl = 0
+      let wiki = JSON.parse(txt), loaded = 0, dl = 0,
+        totalmegs = parseFloat(wiki.bytes / (1024 * 1024)).toFixed(1)
       for (let i = 0; i < wiki.chunks.length; i++) {
-        get(wiki.chunks[i].path, function (txtPiece) {
+        get(wiki.chunks[i].path + "?" + wiki.chunks[i].sha1, function (txtPiece) {
           wiki.chunks[i] = txtPiece
           dl += txtPiece.length
           loaded++
@@ -51,7 +52,7 @@
           if (lid == 1) spc = "  -"
           if (lid == 3) spc = "-  "
           document.querySelector("#notify").innerText =
-            `       [${spc}] ${megs} MB of 12.4 MB (${prog}%)`
+            `       [${spc}] ${megs} MB of ${totalmegs} MB (${prog}%)`
           if (loaded == wiki.chunks.length) {
             let str = wiki.chunks.join('')
             console.log("DONE! " + str.length)
