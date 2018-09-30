@@ -37,28 +37,23 @@
       xhr.open("GET", path, true)
       xhr.send()
     }
-    get("wiki.html.index", function (txt) {
-      let ary = txt.split("\n"), loaded = 0, dl = 0
-      for (let i = 0; i < ary.length; i++) {
-        if (ary[i] == '') {
-          loaded++
-          continue
-        }
-
-        get(ary[i], function (txtPiece) {
-          ary[i] = txtPiece
+    get("wiki.html.json", function (txt) {
+      let wiki = JSON.parse(txt), loaded = 0, dl = 0
+      for (let i = 0; i < wiki.chunks.length; i++) {
+        get(wiki.chunks[i].path, function (txtPiece) {
+          wiki.chunks[i] = txtPiece
           dl += txtPiece.length
           loaded++
 
           let megs = parseFloat(dl / (1024 * 1024)).toFixed(1),
-              prog = Math.ceil(loaded * 100 / ary.length),
+              prog = Math.ceil(loaded * 100 / wiki.chunks.length),
               spc = " - ", lid = loaded % 4
           if (lid == 1) spc = "  -"
           if (lid == 3) spc = "-  "
           document.querySelector("#notify").innerText =
             `       [${spc}] ${megs} MB of 12.4 MB (${prog}%)`
-          if (loaded == ary.length) {
-            let str = ary.join('')
+          if (loaded == wiki.chunks.length) {
+            let str = wiki.chunks.join('')
             console.log("DONE! " + str.length)
             document.getElementById('tw').srcdoc = str
           }
