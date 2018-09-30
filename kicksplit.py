@@ -2,14 +2,19 @@ import difflib
 import json
 import os.path
 import re
+import sys
 from subprocess import Popen, PIPE
 from tempfile import NamedTemporaryFile
 
+if len(sys.argv) < 3:
+    print("kicksplit.py <tiddlywiki.html> <# of chunks>")
+    sys.exit(2)
+
 # Path to the full TiddlyWiki
-twpath = "wiki.html"
+twpath = sys.argv[1]
 
 # Roughly how many chunks should the file be broken into?
-max_chunks = 100
+max_chunks = int(sys.argv[2])
 
 filesize = os.path.getsize(twpath)
 maxchunk = filesize / max_chunks
@@ -68,9 +73,10 @@ if os.path.isfile(jsonpath):
                 remain = int(m.group(3))
 
                 if mode == "d":
+                    diffat -= 1
                     while remain > 0:
                         c = find_chunk(diffat)
-                        del c['lines'][(diffat - c['start']) - 1]
+                        del c['lines'][diffat - c['start']]
                         state['chunks'][c['index']]['lines'] = len(c['lines'])
                         delta -= 1
                         remain -= 1
@@ -85,7 +91,7 @@ if os.path.isfile(jsonpath):
             print("Updating %s" % fname)
             with open(fname, 'w') as f:
                 f.write(str)
-            delta = len(str)
+            delta += len(str)
         i += 1
 
     print("Changed bytes: %d" % delta)
@@ -101,7 +107,7 @@ else:
         global twpath
         global linecount
         if len(chunk) > 0:
-            path = '%s.%03d' % (twpath, pc)
+            path = '%s.%05d' % (twpath, pc)
             state['chunks'].append({'lines': linecount, 'path': path})
             with open(path, 'w') as f:
                 f.write(chunk)
