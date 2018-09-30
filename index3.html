@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script>
+    function get(path, fn) {
+      var xhr = new XMLHttpRequest()
+      xhr.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+          fn(this.responseText)
+        }
+      }
+      xhr.open("GET", path, true)
+      xhr.send()
+    }
+    get("wiki.html.index", function (txt) {
+      let ary = txt.split("\n")
+      for (let i = 0; i < ary.length; i++) {
+        if (ary[i] == '')
+          continue
+
+        var tw = document.getElementById('tw')
+        get(ary[i], function (txtPiece) {
+          ary[i] = [txtPiece]
+          for (let j = 0; j < ary.length; j++) {
+            if (ary[j] instanceof String)
+              break
+            if (ary[j] instanceof Array) {
+              let str = ary[j][0]
+              ary[j] = null
+              console.log(str.length)
+              tw.srcdoc += str
+            }
+          }
+        })
+      }
+    })
+  </script>
+</head>
+<body>
+  <iframe id="tw" style="position:fixed; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%; border:none; margin:0; padding:0; overflow:hidden; z-index:999999;">Your browser doesn't support iFrames.</iframe>
+</body>
+</html>
