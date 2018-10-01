@@ -1,0 +1,28 @@
+#!/bin/bash
+
+SNAP=snap.html
+
+if [[ ! -n $1 ]]; then
+  echo "$0 <tiddlywiki.html>"
+  exit 0
+fi
+
+DIFFSIZE=0
+
+if [ -f "$SNAP" ]; then
+  diff -wn "$SNAP" "$1" > "$SNAP.diff"
+  DIFFSIZE=$(stat -c%s "$SNAP.diff")
+
+  if [ $DIFFSIZE -gt 2097152 ]; then
+    cp "$1" "$SNAP"
+    rm -f "$SNAP.diff"
+    DIFFSIZE=0
+  fi
+else
+  cp "$1" "$SNAP"
+fi
+
+SNAPSIZE=$(stat -c%s "$SNAP")
+
+
+echo "{\"size\": $SNAPSIZE, \"diffsize\": $DIFFSIZE}" > "$SNAP.json"

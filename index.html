@@ -16,7 +16,7 @@
     }
   </style>
   <script>
-    window.onload = function () {
+    function startAnimation() {
       var frame = 0, lastFrame = null
       setInterval(function () {
         var f = document.querySelector("#anim-" + frame)
@@ -27,51 +27,79 @@
         if (frame > 24) { frame = 0 }
       }, 100)
     }
-    function get(path, fn) {
+    function get(path, title, total, fn) {
       var xhr = new XMLHttpRequest()
+      var n = document.getElementById('notify')
+      var show = function (loaded) {
+        var megs = parseFloat(loaded / (1024 * 1024)).toFixed(1),
+            extra = ''
+        if (total > 0) {
+          var totalmegs = parseFloat(total / (1024 * 1024)).toFixed(1),
+              prog = Math.ceil(loaded * 100 / total)
+          extra = ` of ${totalmegs} MB (${prog}%)`
+        }
+        n.innerText = `     ${title} ${megs} MB${extra}`
+      }
       xhr.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
+          show(total)
           fn(this.responseText)
         }
       }
+      xhr.onprogress = function (ev) { show(ev.loaded) }
       xhr.open("GET", path, true)
       xhr.send()
     }
-    get("wiki.html.json", function (txt) {
-      let wiki = JSON.parse(txt), loaded = 0, dl = 0,
-        totalmegs = parseFloat(wiki.bytes / (1024 * 1024)).toFixed(1)
-      for (let i = 0; i < wiki.chunks.length; i++) {
-        get(wiki.chunks[i].path + "?" + wiki.chunks[i].sha1, function (txtPiece) {
-          wiki.chunks[i] = txtPiece
-          dl += txtPiece.length
-          loaded++
-
-          let megs = parseFloat(dl / (1024 * 1024)).toFixed(1),
-              prog = Math.ceil(loaded * 100 / wiki.chunks.length),
-              spc = " - ", lid = loaded % 4
-          if (lid == 1) spc = "  -"
-          if (lid == 3) spc = "-  "
-          document.querySelector("#notify").innerText =
-            `       [${spc}] ${megs} MB of ${totalmegs} MB (${prog}%)`
-          if (loaded == wiki.chunks.length) {
-            let str = wiki.chunks.join('')
-            console.log("DONE! " + str.length)
-            document.getElementById('tw').srcdoc = str
+    function patch(txt, diff) {
+      var lines = txt.split("\n"),
+          difflines = diff.split("\n"),
+          mode = null, remain = 0, diffat = 0, delta = 0, match
+      for (var i = 0; i < difflines.length; i++) {
+        var line = difflines[i]
+        if ((match = /^([ad])(\d+) (\d+)/.exec(line)) != null) {
+          mode = match[1]
+          diffat = Number(match[2]) + delta
+          remain = Number(match[3])
+          // console.log([mode, diffat, remain])
+          if (mode == "d") {
+            diffat--
+            lines.splice(diffat, remain)
+            delta -= remain
+          } else if (mode == "a") {
+            // console.log(difflines.slice(i + 1, remain + i + 1).join("\n"))
+            lines.splice(diffat, 0, ...difflines.slice(i + 1, remain + i + 1))
+            delta += remain
+            i += remain
           }
-        })
+        }
       }
-    })
+      return lines.join("\n")
+    }
+    function iframeSrc(txt) {
+      document.getElementById('tw').srcdoc = txt
+    }
+    window.onload = function () {
+      startAnimation()
+      get("snap.html.json", "WELCOME", 0, function (txt) {
+        var wiki = JSON.parse(txt)
+        get("snap.html", "SNAPSHOT", wiki.size, function (txt) {
+          if (wiki.diffsize == 0)
+            return iframeSrc(txt)
+          get("snap.html.diff", "PATCHING", wiki.diffsize, function (diff) {
+            iframeSrc(patch(txt, diff))
+          })
+        })
+      })
+    }
   </script>
 </head>
 <body>
 <div id='main'>
 <pre style="color: #ffc">
 
-         Loading the Philosopher.
+         THE PHILOSOPER IS LOADING.
 </pre>
-<pre id="notify">
-       [-   ] 0 MB of 12.4 MB (0%)
-</pre>
+<pre id="notify">&nbsp;</pre>
 <pre class='anim' id='anim-0'>
 
                 ,,:::,,,
