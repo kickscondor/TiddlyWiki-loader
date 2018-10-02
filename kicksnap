@@ -1,28 +1,55 @@
 #!/bin/bash
 
-SNAP=snap.html
-
-if [[ ! -n $1 ]]; then
-  echo "$0 <tiddlywiki.html>"
+if [[ ! -n $2 ]]; then
+  echo "$0 <tiddlywiki.html> <public HTML directory> [list]"
+  echo "** the 'list' command at the end allows users to load snapshots"
   exit 0
 fi
 
 DIFFSIZE=0
+SNAP="$2/wiki.html"
 
-if [ -f "$SNAP" ]; then
-  diff -wn "$SNAP" "$1" > "$SNAP.diff"
+if [ -f "$SNAP.snap" ]; then
+  diff -wn "$SNAP.snap" "$1" > "$SNAP.diff"
   DIFFSIZE=$(stat -c%s "$SNAP.diff")
 
   if [ $DIFFSIZE -gt 2097152 ]; then
-    cp "$1" "$SNAP"
+    cp "$1" "$SNAP.snap"
     rm -f "$SNAP.diff"
     DIFFSIZE=0
   fi
 else
-  cp "$1" "$SNAP"
+  cp "$1" "$SNAP.snap"
 fi
 
-SNAPSIZE=$(stat -c%s "$SNAP")
+SNAPSIZE=$(stat -c%s "$SNAP.snap")
+OUTDIR=$(dirname "$0")
 
+cp "$1" "$SNAP"
+cp "$OUTDIR/index.html" "$2/"
+echo "{\"size\": $SNAPSIZE, \"diffsize\": $DIFFSIZE, \"path\": \"wiki.html.snap\"}" > "$SNAP.json"
 
-echo "{\"size\": $SNAPSIZE, \"diffsize\": $DIFFSIZE}" > "$SNAP.json"
+if [ "$3" = "list" ]; then
+  number=0
+  arch="$2/archives"
+  mkdir -p "$arch"
+  suffix="$(printf -- '%08d' "$number")"
+  while test -e "$arch/$suffix.json"; do
+    (( ++number ))
+    if test -f "$arch/$suffix.snap"; then
+      lastsnap="archives/$suffix.snap"
+    fi
+    suffix="$(printf -- '%08d' "$number")"
+  done
+
+  snapdate=$(date -uIseconds)
+  if [ $DIFFSIZE -gt 0 ]; then
+    cp "$SNAP.diff" "$arch/$suffix.diff"
+  else
+    cp "$1" "$arch/$suffix.snap"
+    lastsnap="archives/$suffix.snap"
+  fi
+
+  echo "{\"size\": $SNAPSIZE, \"diffsize\": $DIFFSIZE, \"path\": \"$lastsnap\"}" > "$arch/$suffix.json"
+  echo "archives/$suffix.json" >> "$SNAP.lst"
+fi
