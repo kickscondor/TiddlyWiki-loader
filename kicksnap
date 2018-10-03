@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Maximum size for a delta is 2 MB before a new snapshot is created.
+MAXDELTASIZE=2097152
+
+# Usage
 if [[ ! -n $2 ]]; then
   echo "$0 <tiddlywiki.html> <public HTML directory> [archive]"
   echo "** the 'archive' command at the end allows users to load snapshots"
@@ -9,11 +13,23 @@ fi
 DIFFSIZE=0
 SNAP="$2/wiki.html"
 
+# If there have been no changes since the last run,
+# bail out.
+if [ -f "$SNAP" ]; then
+  changes=$(diff -wn "$SNAP" "$1" | wc -l)
+  if [ $changes -eq 0 ]; then
+    echo "** No changes detected."
+    exit 0
+  fi
+fi
+
+# Use the last snapshot, if it exists.
 if [ -f "$SNAP.snap" ]; then
   diff -wn "$SNAP.snap" "$1" > "$SNAP.diff"
   DIFFSIZE=$(stat -c%s "$SNAP.diff")
 
-  if [ $DIFFSIZE -gt 2097152 ]; then
+  # If our delta is too big, start a new snapshot.
+  if [ $DIFFSIZE -gt $MAXDELTASIZE ]; then
     cp "$1" "$SNAP.snap"
     rm -f "$SNAP.diff"
     DIFFSIZE=0
@@ -28,11 +44,13 @@ OUTDIR=$(dirname "$0")
 cp "$1" "$SNAP"
 cp "$OUTDIR/index.html" "$2/"
 
+# The logic for building the archive.
 if [ "$3" = "archive" ]; then
   number=0
   arch="$2/archives"
   mkdir -p "$arch"
   suffix="$(printf -- '%08d' "$number")"
+  # Generate a new ID.
   while test -e "$arch/$suffix.json"; do
     (( ++number ))
     if test -f "$arch/$suffix.snap"; then
@@ -41,18 +59,21 @@ if [ "$3" = "archive" ]; then
     suffix="$(printf -- '%08d' "$number")"
   done
 
+  # Either take a new snapshot or generate a delta.
   snapdate=$(date -uIseconds)
   if [ $DIFFSIZE -gt 0 ]; then
     mv "$SNAP.diff" "$arch/$suffix.diff"
     diffentry=", \"diffpath\": \"archives/$suffix.diff\""
   else
-    mv "$SNAP.snap" "$arch/$suffix.snap"
+    cp "$SNAP.snap" "$arch/$suffix.snap"
     lastsnap="archives/$suffix.snap"
   fi
 
   echo "{\"size\": $SNAPSIZE, \"diffsize\": $DIFFSIZE, \"path\": \"$lastsnap\"$diffentry}" > "$arch/$suffix.json"
   cp "$arch/$suffix.json" "$SNAP.json"
   echo "archives/$suffix.json" >> "$SNAP.lst"
+  echo "** Archived snapshot $suffix: using snapshot $lastsnap ($DIFFSIZE bytes changed)"
 else
   echo "{\"size\": $SNAPSIZE, \"diffsize\": $DIFFSIZE, \"path\": \"wiki.html.snap\", \"diffpath\": \"wiki.html.diff\"}" > "$SNAP.json"
+  echo "** Snapshot created."
 fi
