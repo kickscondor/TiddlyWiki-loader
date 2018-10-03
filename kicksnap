@@ -1,8 +1,8 @@
 #!/bin/bash
 
 if [[ ! -n $2 ]]; then
-  echo "$0 <tiddlywiki.html> <public HTML directory> [list]"
-  echo "** the 'list' command at the end allows users to load snapshots"
+  echo "$0 <tiddlywiki.html> <public HTML directory> [archive]"
+  echo "** the 'archive' command at the end allows users to load snapshots"
   exit 0
 fi
 
@@ -27,9 +27,8 @@ OUTDIR=$(dirname "$0")
 
 cp "$1" "$SNAP"
 cp "$OUTDIR/index.html" "$2/"
-echo "{\"size\": $SNAPSIZE, \"diffsize\": $DIFFSIZE, \"path\": \"wiki.html.snap\"}" > "$SNAP.json"
 
-if [ "$3" = "list" ]; then
+if [ "$3" = "archive" ]; then
   number=0
   arch="$2/archives"
   mkdir -p "$arch"
@@ -44,12 +43,16 @@ if [ "$3" = "list" ]; then
 
   snapdate=$(date -uIseconds)
   if [ $DIFFSIZE -gt 0 ]; then
-    cp "$SNAP.diff" "$arch/$suffix.diff"
+    mv "$SNAP.diff" "$arch/$suffix.diff"
+    diffentry=", \"diffpath\": \"archives/$suffix.diff\""
   else
-    cp "$1" "$arch/$suffix.snap"
+    mv "$SNAP.snap" "$arch/$suffix.snap"
     lastsnap="archives/$suffix.snap"
   fi
 
-  echo "{\"size\": $SNAPSIZE, \"diffsize\": $DIFFSIZE, \"path\": \"$lastsnap\"}" > "$arch/$suffix.json"
+  echo "{\"size\": $SNAPSIZE, \"diffsize\": $DIFFSIZE, \"path\": \"$lastsnap\"$diffentry}" > "$arch/$suffix.json"
+  cp "$arch/$suffix.json" "$SNAP.json"
   echo "archives/$suffix.json" >> "$SNAP.lst"
+else
+  echo "{\"size\": $SNAPSIZE, \"diffsize\": $DIFFSIZE, \"path\": \"wiki.html.snap\", \"diffpath\": \"wiki.html.diff\"}" > "$SNAP.json"
 fi

@@ -45,13 +45,35 @@ Once the script starts generating patches, the directory will look like this:
 The `wiki.html` is a copy of your full wiki, if you find that you need to
 access it.
 
-### Other Attempted Strategies
+## Generating Archives
+
+This delta strategy has the nice effect of making it very simple for us to
+generate archives of the wiki. So... that's built into the tool as well.
+
+Just add the `archive` command at the end:
+
+    $ ./kicksnap ~/Downloads/MyWiki.html /var/www/html archive
+
+This will generate an `archives` directory that will contain numbered archives.
+A `wiki.html.lst` file will also be created, containing a simple directory
+listing.
+
+    ┣━ archives/
+    ┣━ index.html
+    ┣━ wiki.html
+    ┗━ wiki.html.lst
+
+The presence of these files will enable access to the archive list in the
+`index.html`. You can add "?archives" to the URL to the index.html and the
+archive list will appear.
+
+## Other Attempted Strategies
 
 You might be wondering if there are other ways to do this---I have tried a few
 other ways and just want to mention them before you offer them up as suggestions
 for improving this setup.
 
-#### Using Split Files
+### Using Split Files
 
 My first strategy was to split up the wiki file into anywhere from 20 to 200
 separate files (split on line endings) and then using a diff to update only
@@ -68,8 +90,20 @@ The trouble with this strategy is that it was:
   to start rebalancing the data as time would pass, meaning that at least 10% of
   chunks were getting updated even with an increasingly complex algorithm.
 
-#### Using Multiple Diffs
+### Using Multiple Diffs
 
 Another strategy was to add diffs for each time the file is changed. This
 wasn't a bad approach---but once the files began to build up, they became
 double the size of a single diff anyway. It wasn't worth the extra complexity.
+
+## Okay, Nothing Further
+
+Except that there is a bit further.
+
+Here is an article discussing my reasons behind this project:<br>
+https://www.kickscondor.com/taming-outlandish-tiddlywikis
+
+And thank you to these two wikis for inspiring me to see the value of these
+wikis:<br>
+https://philosopher.life<br>
+https://sphygm.us

@@ -80,7 +80,9 @@
       get(wikipath, "SNAPSHOT", wiki.size, function (st, txt) {
         if (wiki.diffsize == 0)
           return iframeSrc(txt)
-        get(jsonpath.replace(".json", ".diff") + "?" + wiki.size + "," + wiki.diffsize, "PATCHING", wiki.diffsize, function (st, diff) {
+        if (!wiki.diffpath)
+          wiki.diffpath = jsonpath.replace(".json", ".diff")
+        get(wiki.diffpath + "?" + wiki.size + "," + wiki.diffsize, "PATCHING", wiki.diffsize, function (st, diff) {
           iframeSrc(patch(txt, diff))
         })
       })
@@ -89,7 +91,7 @@
   function startLoader() {
     get("wiki.html.lst", "LIST", 0, function (st, txt) {
       if (txt) {
-        var list = txt.split("\n"), html = "", match
+        var list = txt.split("\n").filter(line => line != ''), html = "", match
         if ((match = /load=(\d+)/.exec(window.location.search)) != null) {
           startWiki(list[Number(match[1])])
           return
